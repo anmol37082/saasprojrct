@@ -7,12 +7,16 @@ dotenv.config();
 
 // Validate env lazily so local/serverless import doesn't crash before env is set.
 let env;
+let app;
 function getEnv() {
   if (!env) env = validateEnv();
   return env;
 }
 
-const app = createApp();
+function getApp() {
+  if (!app) app = createApp();
+  return app;
+}
 
 
 // Vercel compatibility:
@@ -27,12 +31,21 @@ const app = createApp();
 let server;
 
 export const handler = async (req, res) => {
-  // Lazy connection for serverless.
-  if (!globalThis.__mongoConnectionPromise) {
-    globalThis.__mongoConnectionPromise = connectToDatabase();
+  try {
+    // Lazy connection for serverless.
+    if (!globalThis.__mongoConnectionPromise) {
+      globalThis.__mongoConnectionPromise = connectToDatabase();
+    }
+    await globalThis.__mongoConnectionPromise;
+    return getApp()(req, res);
+  } catch (error) {
+    const statusCode = error?.message?.includes('Missing required environment variables') ? 500 : 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Serverless invocation failed',
+      code: 'FUNCTION_ERROR'
+    });
   }
-  await globalThis.__mongoConnectionPromise;
-  return app(req, res);
 };
 
 export default handler;
@@ -41,7 +54,7 @@ if (process.env.VERCEL === undefined) {
   const envNow = getEnv();
   (async () => {
     await connectToDatabase();
-    server = app.listen(envNow.PORT, () => {
+    server = getApp().listen(envNow.PORT, () => {
       // eslint-disable-next-line no-console
       console.info(`Server listening on http://localhost:${envNow.PORT}`);
     });
