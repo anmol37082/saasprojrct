@@ -1,0 +1,28 @@
+{
+  "name": "multi-tenant-lead-saas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node --watch api/index.js",
+    "start": "node api/index.js",
+    "seed:admin": "node scripts/create-admin.js",
+    "lint": "node -e \"console.log('lint: configure ESLint in Phase 3')\"",
+    "test": "node -e \"console.log('test: configure test runner in Phase 3')\""
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "exceljs": "^4.4.0",
+    "express": "^5.0.1",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^7.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.24.1",
+    "morgan": "^1.11.0"
+  }
+}
