@@ -122,3 +122,27 @@ export function createApp() {
   return app;
 }
 
+let cachedApp;
+
+function getCachedApp() {
+  if (!cachedApp) cachedApp = createApp();
+  return cachedApp;
+}
+
+export default async function handler(req, res) {
+  try {
+    if (!globalThis.__mongoConnectionPromise) {
+      const { connectToDatabase } = await import('./config/database.js');
+      globalThis.__mongoConnectionPromise = connectToDatabase();
+    }
+    await globalThis.__mongoConnectionPromise;
+    return getCachedApp()(req, res);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Serverless invocation failed',
+      code: 'FUNCTION_ERROR'
+    });
+  }
+}
+
