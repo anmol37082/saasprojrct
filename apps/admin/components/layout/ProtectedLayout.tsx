@@ -12,7 +12,7 @@ type ProtectedLayoutProps = {
   children?: ReactNode;
 };
 
-const PROTECTED_PREFIXES = ['/dashboard', '/clients', '/leads', '/exports', '/audit-logs', '/settings'];
+const PROTECTED_PREFIXES = ['/dashboard', '/clients', '/leads', '/exports', '/audit-logs', '/settings', '/profile', '/notifications'];
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));

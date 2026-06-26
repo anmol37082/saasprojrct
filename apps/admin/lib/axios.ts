@@ -2,7 +2,10 @@ import axios from 'axios';
 import { clearAuthTokens, getAccessToken, getRefreshToken, setAuthTokens } from './auth-storage';
 
 const configuredBaseURL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-const baseURL = configuredBaseURL && configuredBaseURL.length > 0 ? configuredBaseURL : '';
+// Avoid accidental calls to Next.js (3001) when env is missing.
+// Local default points to the Express API running on port 3000.
+const baseURL = configuredBaseURL && configuredBaseURL.length > 0 ? configuredBaseURL : 'http://localhost:3000';
+
 
 export const axiosInstance = axios.create({
   baseURL,

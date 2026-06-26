@@ -97,11 +97,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     setUser(await meApi<AuthUser>());
   }, []);
 
-  const logout = useCallback<AuthContextValue['logout']>(async () => {
+  const logout = useCallback<AuthContextValue['logout']>(async (refreshTokenArg) => {
     setLoading(true);
     try {
-      if (getRefreshToken()) {
-        await logoutApi();
+      const currentRefreshToken = refreshTokenArg ?? getRefreshToken();
+      if (currentRefreshToken) {
+        await logoutApi(currentRefreshToken);
       }
     } catch {
       // best effort logout

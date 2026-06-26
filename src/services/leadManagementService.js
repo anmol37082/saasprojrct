@@ -132,6 +132,28 @@ export async function deleteLead({ tenantId, id, actor }) {
   return { ok: true };
 }
 
+export async function updateLead({ tenantId, id, update = {}, actor }) {
+  const lead = tenantId ? await Lead.findOne({ _id: id, tenantId }) : await Lead.findById(id);
+  if (!lead) throw new AppError('Lead not found', 404, 'LEAD_NOT_FOUND');
+
+  if (update.status !== undefined) {
+    lead.status = String(update.status).trim();
+  }
+
+  await lead.save();
+
+  await audit({
+    tenantId,
+    actor,
+    action: 'Lead Updated',
+    resource: 'Lead',
+    resourceId: id,
+    metadata: { update }
+  });
+
+  return lead.toObject();
+}
+
 export async function logLeadViewed({ tenantId, actor, leadId }) {
   await audit({ tenantId, actor, action: 'Lead Viewed', resource: 'Lead', resourceId: leadId, metadata: {} });
 }

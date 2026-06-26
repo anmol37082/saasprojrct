@@ -22,8 +22,20 @@ export function EmptyState({
 
 export function LoadingState({ label = 'Loading...' }: { label?: string }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 px-6 py-10 text-center text-slate-200">
-      <div className="animate-pulse text-sm uppercase tracking-[0.3em] text-cyan-200/60">{label}</div>
+    <div className="rounded-3xl border border-white/10 bg-white/5 px-6 py-6 text-slate-200">
+      <div className="flex items-center gap-3 text-sm uppercase tracking-[0.3em] text-cyan-200/60">
+        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-cyan-300" />
+        {label}
+      </div>
+      <div className="mt-6 space-y-3">
+        <div className="h-4 w-2/3 animate-pulse rounded-full bg-white/10" />
+        <div className="h-4 w-full animate-pulse rounded-full bg-white/10" />
+        <div className="h-4 w-5/6 animate-pulse rounded-full bg-white/10" />
+        <div className="grid gap-3 pt-2 md:grid-cols-2">
+          <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -51,4 +63,3 @@ export function ErrorState({
     </div>
   );
 }
-

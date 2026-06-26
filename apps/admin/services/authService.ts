@@ -11,8 +11,8 @@ export async function refresh(payload: RefreshRequest): Promise<AuthResponse> {
   return (res.data?.data ?? res.data) as AuthResponse;
 }
 
-export async function logout(): Promise<void> {
-  await axiosInstance.post('/api/auth/logout');
+export async function logout(refreshToken?: string): Promise<void> {
+  await axiosInstance.post('/api/auth/logout', refreshToken ? { refreshToken } : undefined);
 }
 
 export async function me<T = unknown>(): Promise<T> {

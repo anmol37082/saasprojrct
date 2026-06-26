@@ -6,7 +6,7 @@ export async function getDashboardSummaryController(req, res, next) {
   try {
     const tenantId = req.auth?.tenantId ?? null;
 
-    const data = await dashboardService.getDashboardSummary({ tenantId });
+    const data = await dashboardService.getDashboardSummary({ tenantId, query: req.query || {} });
 
     return res.status(200).json(
       ApiResponse.ok({

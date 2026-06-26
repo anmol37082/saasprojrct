@@ -28,6 +28,51 @@ const AdminSchema = new Schema(
       select: false
     },
 
+    displayName: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+
+    avatarUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+
+    timezone: {
+      type: String,
+      trim: true,
+      default: 'Asia/Calcutta'
+    },
+
+    language: {
+      type: String,
+      trim: true,
+      default: 'en'
+    },
+
+    notificationPreferences: {
+      type: Schema.Types.Mixed,
+      default: {}
+    },
+
+    emailPreferences: {
+      type: Schema.Types.Mixed,
+      default: {}
+    },
+
+    pushPreferences: {
+      type: Schema.Types.Mixed,
+      default: {}
+    },
+
+    sessionVersion: {
+      type: Number,
+      default: 0,
+      index: true
+    },
+
     role: {
       type: String,
       required: true,

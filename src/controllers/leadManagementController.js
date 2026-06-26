@@ -1,5 +1,6 @@
 import { AppError } from '../utils/AppError.js';
 import * as leadManagementService from '../services/leadManagementService.js';
+import { validateUpdateLead } from '../validators/leadValidator.js';
 
 function toSort(req) {
   const field = req.query?.sortField ? String(req.query.sortField) : 'createdAt';
@@ -75,6 +76,32 @@ export async function deleteLeadController(req, res, next) {
     return res.status(200).json({
       success: true,
       data: { ok: true },
+      requestId: req.requestContext?.requestId
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+export async function updateLeadController(req, res, next) {
+  try {
+    const tenantId = req.auth?.tenantId ?? req.tenantId ?? null;
+
+    const leadId = req.params?.id;
+    if (!leadId) throw new AppError('lead id required', 400, 'MISSING_LEAD_ID');
+
+    const update = validateUpdateLead(req.body || {});
+
+    const lead = await leadManagementService.updateLead({
+      tenantId,
+      id: leadId,
+      update,
+      actor: req.auth?.adminId || null
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: lead,
       requestId: req.requestContext?.requestId
     });
   } catch (err) {

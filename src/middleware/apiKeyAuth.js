@@ -19,7 +19,7 @@ export function apiKeyAuth({ environment } = {}) {
         'apiKeys.keyHash': keyHash,
         'apiKeys.status': { $in: ['active'] },
         ...(envWanted ? { 'apiKeys.environment': envWanted } : {})
-      }).lean();
+      });
 
       if (!client) return next(new AppError('Unauthorized', 401, 'INVALID_API_KEY'));
 
@@ -28,11 +28,22 @@ export function apiKeyAuth({ environment } = {}) {
         return next(new AppError('Unauthorized', 401, 'INVALID_API_KEY_STATUS'));
       }
 
+      keyEntry.lastUsedAt = new Date();
+      await client.save();
+
       req.client = {
         id: client._id.toString(),
         clientName: client.clientName,
         clientId: client.clientId,
-        allowedDomains: client.allowedDomains || []
+        allowedDomains: client.allowedDomains || [],
+        apiKey: {
+          label: keyEntry.label || '',
+          environment: keyEntry.environment || 'prod',
+          status: keyEntry.status || 'active',
+          createdAt: keyEntry.createdAt || null,
+          rotatedAt: keyEntry.rotatedAt || null,
+          lastUsedAt: keyEntry.lastUsedAt || null
+        }
       };
 
       req.tenantId = client._id;

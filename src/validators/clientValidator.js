@@ -12,6 +12,12 @@ function assertBoolean(value, field) {
   return value;
 }
 
+function assertEnum(value, field, allowed, fallback) {
+  const normalized = value === undefined || value === null || value === '' ? fallback : String(value).trim();
+  if (!allowed.includes(normalized)) throw new AppError(`Invalid ${field}`, 400, 'VALIDATION_ERROR');
+  return normalized;
+}
+
 function normalizeDomain(domain) {
   if (typeof domain !== 'string') throw new AppError('Invalid domain', 400, 'VALIDATION_ERROR');
   const d = domain.trim().toLowerCase();
@@ -35,6 +41,7 @@ export function validateCreateClient(body = {}) {
   const clientId = assertString(body.clientId, 'clientId', { min: 2, max: 120 });
 
   const active = body.active === undefined ? true : assertBoolean(body.active, 'active');
+  const environment = assertEnum(body.environment, 'environment', ['prod', 'sandbox'], 'prod');
 
   const allowedDomains = Array.isArray(body.allowedDomains) ? body.allowedDomains : [];
   const normalizedDomains = allowedDomains.map((d) => {
@@ -45,7 +52,7 @@ export function validateCreateClient(body = {}) {
     return { domain, allowSubdomains, enabled };
   });
 
-  return { clientName, clientId, active, allowedDomains: normalizedDomains };
+  return { clientName, clientId, active, environment, allowedDomains: normalizedDomains };
 }
 
 export function validateUpdateClient(body = {}) {
@@ -62,6 +69,20 @@ export function validateUpdateClient(body = {}) {
 
   if (body.active !== undefined) {
     result.active = assertBoolean(body.active, 'active');
+  }
+
+  if (body.allowedDomains !== undefined) {
+    if (!Array.isArray(body.allowedDomains)) {
+      throw new AppError('Invalid allowedDomains', 400, 'VALIDATION_ERROR');
+    }
+
+    result.allowedDomains = body.allowedDomains.map((d) => {
+      const input = typeof d === 'string' ? { domain: d } : d;
+      const domain = normalizeDomain(input.domain);
+      const allowSubdomains = !!(input.allowSubdomains ?? false);
+      const enabled = input.enabled === undefined ? true : !!input.enabled;
+      return { domain, allowSubdomains, enabled };
+    });
   }
 
   if (body.subscriptionStatus !== undefined) {

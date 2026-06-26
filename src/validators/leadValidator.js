@@ -180,3 +180,16 @@ export function leadValidator(options = {}) {
   };
 }
 
+export function validateUpdateLead(body = {}) {
+  const result = {};
+
+  if (body.status !== undefined) {
+    if (typeof body.status !== 'string') throw new AppError('Invalid status', 400, 'VALIDATION_ERROR');
+    const status = body.status.trim();
+    if (!status || status.length > 50) throw new AppError('Invalid status', 400, 'VALIDATION_ERROR');
+    result.status = status;
+  }
+
+  return result;
+}
+

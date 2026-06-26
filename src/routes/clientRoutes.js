@@ -27,56 +27,56 @@ export function buildClientRouter() {
   router.post(
     '/',
     authMiddleware({ required: true }),
-    rbacMiddleware({ permissions: ['clients:read'] }),
+    rbacMiddleware({ permissions: ['clients:write'] }),
     asyncHandler(createClientController)
   );
 
   router.patch(
     '/:clientId',
     authMiddleware({ required: true }),
-    rbacMiddleware({ permissions: ['clients:read'] }),
+    rbacMiddleware({ permissions: ['clients:write'] }),
     asyncHandler(updateClientController)
   );
 
   router.delete(
     '/:clientId',
     authMiddleware({ required: true }),
-    rbacMiddleware({ permissions: ['clients:read'] }),
+    rbacMiddleware({ permissions: ['clients:delete'] }),
     asyncHandler(deleteClientController)
   );
 
   router.post(
     '/:clientId/activate',
     authMiddleware({ required: true }),
-    rbacMiddleware({ permissions: ['clients:read'] }),
+    rbacMiddleware({ permissions: ['clients:write'] }),
     asyncHandler(activateClientController)
   );
 
   router.post(
     '/:clientId/deactivate',
     authMiddleware({ required: true }),
-    rbacMiddleware({ permissions: ['clients:read'] }),
+    rbacMiddleware({ permissions: ['clients:write'] }),
     asyncHandler(deactivateClientController)
   );
 
   router.post(
     '/:clientId/rotate-api-key',
     authMiddleware({ required: true }),
-    rbacMiddleware({ permissions: ['clients:read'] }),
+    rbacMiddleware({ permissions: ['clients:write'] }),
     asyncHandler(rotateApiKeyController)
   );
 
   router.post(
     '/:clientId/domains',
     authMiddleware({ required: true }),
-    rbacMiddleware({ permissions: ['clients:read'] }),
+    rbacMiddleware({ permissions: ['clients:write'] }),
     asyncHandler(addDomainController)
   );
 
   router.delete(
     '/:clientId/domains',
     authMiddleware({ required: true }),
-    rbacMiddleware({ permissions: ['clients:read'] }),
+    rbacMiddleware({ permissions: ['clients:write'] }),
     asyncHandler(removeDomainController)
   );
 

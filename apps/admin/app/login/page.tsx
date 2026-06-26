@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -76,6 +77,11 @@ export default function LoginPage() {
           >
             {loading || isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
+          <div className="text-center text-sm text-slate-300">
+            <Link className="text-cyan-200" href="/forgot-password">
+              Forgot password?
+            </Link>
+          </div>
         </form>
       </div>
     </div>

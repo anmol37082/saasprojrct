@@ -3,7 +3,7 @@
 import { useAuth } from '../../hooks/useAuth';
 
 export function Navbar() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, refreshToken } = useAuth();
 
   return (
     <header className="border-b border-white/10 bg-slate-950/70 px-4 py-3 backdrop-blur">
@@ -14,13 +14,13 @@ export function Navbar() {
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden text-right sm:block">
-            <div className="text-sm font-medium text-white">{user?.email ?? 'Not signed in'}</div>
+            <div className="text-sm font-medium text-white">{user?.displayName ?? user?.email ?? 'Not signed in'}</div>
             <div className="text-xs text-slate-300/70">{user?.role ?? 'guest'}</div>
           </div>
           <button
             className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:opacity-60"
             type="button"
-            onClick={() => void logout()}
+            onClick={() => void logout(refreshToken)}
             disabled={loading}
           >
             Logout

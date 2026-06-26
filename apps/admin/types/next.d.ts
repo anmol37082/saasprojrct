@@ -4,7 +4,7 @@
 
 declare module 'next' {
   export type NextConfig = {
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

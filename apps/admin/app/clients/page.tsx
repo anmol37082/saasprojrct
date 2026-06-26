@@ -1,341 +1,326 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import ProtectedLayout from '@/components/layout/ProtectedLayout';
-import { PageShell } from '@/components/ui/PageShell';
-import { Badge, Panel } from '@/components/ui/Cards';
+import { Badge, Panel, StatCard } from '@/components/ui/Cards';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States';
-import {
-  addDomain,
-  createClient,
-  deleteClient,
-  listClients,
-  removeDomain,
-  rotateApiKey,
-  updateClient
-} from '@/services/clientService';
-import type { Client, ClientsListResponse } from '@/types/client';
+import { PageShell } from '@/components/ui/PageShell';
+import { activateClient, deactivateClient, deleteClient, listClients, rotateApiKey } from '@/services/clientService';
+import type { Client } from '@/types/client';
 import { useToast } from '@/hooks/useToast';
+import { formatDate, getClientKey, getClientStatistics, getLatestApiKey } from '@/components/clients/client-utils';
 
-const blankNewClient = { clientName: '', clientId: '', notes: '', active: true, domains: '' };
+type ClientFilters = {
+  search: string;
+  status: 'all' | 'active' | 'inactive';
+};
 
-function parseDomains(value: string) {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((domain) => ({ domain, enabled: true, allowSubdomains: false }));
+const defaultFilters: ClientFilters = {
+  search: '',
+  status: 'all'
+};
+
+function buildQuery(filters: ClientFilters, page: number) {
+  const params: Record<string, string | number | undefined> = {
+    page,
+    limit: 10
+  };
+
+  if (filters.search.trim()) params.search = filters.search.trim();
+  if (filters.status !== 'all') params.status = filters.status;
+
+  return params;
 }
 
 export default function ClientsPage() {
   const { toast } = useToast();
-  const [filters, setFilters] = useState({ search: '', active: '' });
-  const [data, setData] = useState<ClientsListResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [filters, setFilters] = useState<ClientFilters>(defaultFilters);
   const [page, setPage] = useState(1);
-  const [newClient, setNewClient] = useState(blankNewClient);
-  const [editing, setEditing] = useState<Record<string, Partial<Client> & { domains: string }>>({});
-  const [domainDrafts, setDomainDrafts] = useState<Record<string, string>>({});
-  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [generatedKey, setGeneratedKey] = useState<{ key: string; clientName: string; environment?: string } | null>(null);
 
-  const params = useMemo(() => ({ ...filters, page, limit: 10 }), [filters, page]);
+  const queryParams = useMemo(() => buildQuery(filters, page), [filters, page]);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const result = (await listClients(params)) as ClientsListResponse;
-        if (mounted) setData(result);
-      } catch (err) {
-        if (mounted) setError(err instanceof Error ? err.message : 'Failed to load clients');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [params]);
+  const clientsQuery = useQuery({
+    queryKey: ['clients', queryParams],
+    queryFn: () => listClients(queryParams)
+  });
 
-  const refresh = () => setPage((current) => current);
-
-  const createSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    try {
-      await createClient({
-        clientName: newClient.clientName,
-        clientId: newClient.clientId,
-        notes: newClient.notes,
-        active: newClient.active,
-        allowedDomains: parseDomains(newClient.domains)
-      });
-      toast({ title: 'Client created', tone: 'success' });
-      setNewClient(blankNewClient);
-      setPage(1);
-    } catch (err) {
-      toast({ title: 'Create failed', description: err instanceof Error ? err.message : 'Unknown error', tone: 'error' });
-    }
-  };
-
-  const saveClient = async (client: Client) => {
-    const draft = editing[client._id ?? client.id];
-    if (!draft) return;
-    try {
-      await updateClient(client._id ?? client.id, {
-        clientName: draft.clientName,
-        notes: draft.notes,
-        active: draft.active,
-        allowedDomains: draft.domains ? parseDomains(draft.domains) : undefined
-      } as Partial<Client>);
-      toast({ title: 'Client updated', tone: 'success' });
-      setEditing((current) => {
-        const next = { ...current };
-        delete next[client._id ?? client.id];
-        return next;
-      });
-      setPage(1);
-    } catch (err) {
-      toast({ title: 'Update failed', description: err instanceof Error ? err.message : 'Unknown error', tone: 'error' });
-    }
-  };
-
-  const remove = async (client: Client) => {
-    if (!window.confirm(`Delete ${client.clientName ?? client.clientId}?`)) return;
-    try {
-      await deleteClient(client._id ?? client.id);
+  const deleteMutation = useMutation({
+    mutationFn: async (client: Client) => {
+      const id = getClientKey(client);
+      if (!window.confirm(`Delete ${client.clientName ?? client.clientId ?? id}?`)) return null;
+      await deleteClient(id);
+      return client;
+    },
+    onSuccess: (client) => {
+      if (!client) return;
       toast({ title: 'Client deleted', tone: 'success' });
-      setPage(1);
-    } catch (err) {
-      toast({ title: 'Delete failed', description: err instanceof Error ? err.message : 'Unknown error', tone: 'error' });
+      void queryClient.invalidateQueries({ queryKey: ['clients'] });
+    },
+    onError: (error) => {
+      toast({ title: 'Delete failed', description: error instanceof Error ? error.message : 'Unknown error', tone: 'error' });
     }
-  };
+  });
 
-  const rotate = async (client: Client) => {
-    try {
-      const result = await rotateApiKey(client._id ?? client.id);
-      setGeneratedKey(result.apiKey);
+  const toggleMutation = useMutation({
+    mutationFn: async (client: Client) => {
+      const id = getClientKey(client);
+      return client.active ? deactivateClient(id) : activateClient(id);
+    },
+    onSuccess: (client) => {
+      toast({
+        title: client.active ? 'Client enabled' : 'Client disabled',
+        tone: 'success'
+      });
+      void queryClient.invalidateQueries({ queryKey: ['clients'] });
+    },
+    onError: (error) => {
+      toast({ title: 'Unable to update client status', description: error instanceof Error ? error.message : 'Unknown error', tone: 'error' });
+    }
+  });
+
+  const rotateMutation = useMutation({
+    mutationFn: async (client: Client) => {
+      const id = getClientKey(client);
+      return rotateApiKey(id);
+    },
+    onSuccess: (result, client) => {
+      setGeneratedKey({
+        key: result.apiKey ?? '',
+        clientName: client.clientName ?? client.clientId ?? getClientKey(client),
+        environment: result.environment
+      });
       toast({ title: 'API key rotated', description: 'Copy the new key immediately.', tone: 'success' });
-    } catch (err) {
-      toast({ title: 'Rotation failed', description: err instanceof Error ? err.message : 'Unknown error', tone: 'error' });
+      void queryClient.invalidateQueries({ queryKey: ['clients'] });
+    },
+    onError: (error) => {
+      toast({ title: 'Rotation failed', description: error instanceof Error ? error.message : 'Unknown error', tone: 'error' });
     }
-  };
+  });
 
-  const handleAddDomain = async (client: Client) => {
-    const key = client._id ?? client.id;
-    const domain = (domainDrafts[key] ?? '').trim();
-    if (!domain) return;
-    try {
-      await addDomain(key, { domain, enabled: true, allowSubdomains: false });
-      toast({ title: 'Domain added', tone: 'success' });
-      setDomainDrafts((current) => ({ ...current, [key]: '' }));
-      setPage(1);
-    } catch (err) {
-      toast({ title: 'Domain add failed', description: err instanceof Error ? err.message : 'Unknown error', tone: 'error' });
-    }
-  };
-
-  const handleRemoveDomain = async (client: Client, domain: string) => {
-    try {
-      await removeDomain(client._id ?? client.id, domain);
-      toast({ title: 'Domain removed', tone: 'success' });
-      setPage(1);
-    } catch (err) {
-      toast({ title: 'Domain remove failed', description: err instanceof Error ? err.message : 'Unknown error', tone: 'error' });
-    }
-  };
+  const clients = clientsQuery.data?.items ?? [];
+  const total = clientsQuery.data?.total ?? 0;
+  const activeCount = clients.filter((client) => client.active).length;
+  const inactiveCount = clients.filter((client) => !client.active).length;
+  const keyCount = clients.reduce((sum, client) => sum + getClientStatistics(client).apiKeyCount, 0);
 
   return (
     <ProtectedLayout>
-      <PageShell eyebrow="Management" title="Clients" description="Create, edit, delete, rotate keys, and manage allowed domains.">
-        <div className="grid gap-6 xl:grid-cols-[1fr_1.6fr]">
-          <Panel title="Add Client">
-            <form onSubmit={(event) => void createSubmit(event)} className="space-y-3">
-              <Field label="Client Name" value={newClient.clientName} onChange={(value) => setNewClient((current) => ({ ...current, clientName: value }))} required />
-              <Field label="Client ID" value={newClient.clientId} onChange={(value) => setNewClient((current) => ({ ...current, clientId: value }))} required />
-              <Field label="Notes" value={newClient.notes} onChange={(value) => setNewClient((current) => ({ ...current, notes: value }))} />
-              <Field label="Allowed Domains (comma separated)" value={newClient.domains} onChange={(value) => setNewClient((current) => ({ ...current, domains: value }))} />
-              <label className="flex items-center gap-2 text-sm text-slate-300">
-                <input type="checkbox" checked={newClient.active} onChange={(e) => setNewClient((current) => ({ ...current, active: e.target.checked }))} />
-                Active
-              </label>
-              <button className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950" type="submit">
-                Create Client
-              </button>
-            </form>
-            {generatedKey ? <pre className="mt-4 overflow-auto rounded-2xl bg-slate-950/70 p-3 text-xs text-cyan-100">{generatedKey}</pre> : null}
+      <PageShell
+        eyebrow="Management"
+        title="Clients"
+        description="Search clients, inspect key health, manage access, and jump into create/edit/detail workflows."
+        actions={
+          <Link className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950" href={'/clients/new' as never}>
+            Create Client
+          </Link>
+        }
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Total Clients" value={total.toLocaleString()} hint="matching current filters" />
+          <StatCard label="Active Clients" value={activeCount.toLocaleString()} hint="enabled right now" />
+          <StatCard label="Inactive Clients" value={inactiveCount.toLocaleString()} hint="disabled or paused" />
+          <StatCard label="API Keys" value={keyCount.toLocaleString()} hint="stored credentials" />
+        </div>
+
+        {generatedKey ? (
+          <Panel
+            title="Latest API Key"
+            right={
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone="cyan">{generatedKey.environment ?? 'prod'}</Badge>
+                <CopyButton text={generatedKey.key} />
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              <div className="text-sm text-slate-300">
+                {generatedKey.clientName} has a new API key. Copy it now because the raw value is never stored.
+              </div>
+              <pre className="overflow-auto rounded-2xl bg-slate-950/70 p-3 text-xs text-cyan-100">{generatedKey.key}</pre>
+            </div>
           </Panel>
+        ) : null}
 
-          <div className="space-y-4">
-            <Panel title="Filters">
-              <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Search" value={filters.search} onChange={(value) => setFilters((current) => ({ ...current, search: value }))} />
-                <Field label="Active (true/false)" value={filters.active} onChange={(value) => setFilters((current) => ({ ...current, active: value }))} />
-              </div>
-              <div className="mt-3 flex gap-3">
-                <button className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white" type="button" onClick={() => setPage(1)}>
-                  Apply Filters
-                </button>
-                <button
-                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white"
-                  type="button"
-                  onClick={() => {
-                    setFilters({ search: '', active: '' });
-                    setPage(1);
-                  }}
-                >
-                  Reset
-                </button>
-              </div>
-            </Panel>
+        <Panel title="Filters">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_0.8fr_auto]">
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Search</span>
+              <input
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-2 text-white outline-none placeholder:text-slate-500"
+                value={filters.search}
+                onChange={(event) => {
+                  setFilters((current) => ({ ...current, search: event.target.value }));
+                  setPage(1);
+                }}
+                placeholder="Client name, ID, or notes"
+              />
+            </label>
+            <label className="space-y-1 text-sm text-slate-300">
+              <span>Status</span>
+              <select
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-2 text-white"
+                value={filters.status}
+                onChange={(event) => {
+                  setFilters((current) => ({ ...current, status: event.target.value as ClientFilters['status'] }));
+                  setPage(1);
+                }}
+              >
+                <option value="all">All clients</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+            <div className="flex items-end gap-3">
+              <button
+                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white"
+                type="button"
+                onClick={() => {
+                  setFilters(defaultFilters);
+                  setPage(1);
+                }}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </Panel>
 
-            {loading ? <LoadingState label="Loading clients" /> : null}
-            {error ? <ErrorState message={error} retry={() => window.location.reload()} /> : null}
+        {clientsQuery.isLoading ? <LoadingState label="Loading clients" /> : null}
+        {clientsQuery.isError ? (
+          <ErrorState
+            message={clientsQuery.error instanceof Error ? clientsQuery.error.message : 'Failed to load clients'}
+            retry={() => void clientsQuery.refetch()}
+          />
+        ) : null}
 
-            {data ? (
-              <Panel title="Client Listing" right={<Badge tone="cyan">{data.total.toLocaleString()} clients</Badge>}>
-                {data.items.length ? (
-                  <div className="space-y-4">
-                    {data.items.map((client) => {
-                      const key = client._id ?? client.id;
-                      const draft = editing[key] ?? {
-                        clientName: client.clientName ?? '',
-                        notes: client.notes ?? '',
-                        active: client.active ?? true,
-                        domains: (client.allowedDomains ?? []).map((entry) => entry.domain).join(', ')
-                      };
+        {clientsQuery.data ? (
+          <Panel title="Client Directory" right={<Badge tone="cyan">{total.toLocaleString()} total</Badge>}>
+            {clients.length ? (
+              <div className="space-y-4">
+                {clients.map((client) => {
+                  const stats = getClientStatistics(client);
+                  const latestKey = getLatestApiKey(client);
+                  const key = getClientKey(client);
 
-                      return (
-                        <div key={key} className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                            <div>
-                              <div className="text-lg font-semibold text-white">{client.clientName ?? client.clientId}</div>
-                              <div className="text-sm text-slate-300">{client.clientId}</div>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                <Badge tone={client.active ? 'emerald' : 'rose'}>{client.active ? 'active' : 'inactive'}</Badge>
-                                <Badge tone="slate">API keys {client.apiKeys?.length ?? 0}</Badge>
-                                <Badge tone="slate">Domains {client.allowedDomains?.length ?? 0}</Badge>
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <button className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white" type="button" onClick={() => setEditing((current) => ({ ...current, [key]: draft }))}>
-                                Edit
-                              </button>
-                              <button className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100" type="button" onClick={() => void rotate(client)}>
-                                Rotate API Key
-                              </button>
-                              <button className="rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-100" type="button" onClick={() => void remove(client)}>
-                                Delete
-                              </button>
-                            </div>
+                  return (
+                    <article key={key} className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="truncate text-lg font-semibold text-white">{client.clientName ?? client.clientId ?? key}</h3>
+                            <Badge tone={client.active ? 'emerald' : 'rose'}>{client.active ? 'active' : 'inactive'}</Badge>
+                            <Badge tone="slate">{stats.apiKeyCount} keys</Badge>
+                            <Badge tone="slate">{stats.allowedDomainCount} domains</Badge>
                           </div>
-
-                          {editing[key] ? (
-                            <div className="mt-4 grid gap-3 md:grid-cols-2">
-                              <Field label="Client Name" value={draft.clientName ?? ''} onChange={(value) => setEditing((current) => ({ ...current, [key]: { ...draft, clientName: value } }))} />
-                              <Field label="Notes" value={draft.notes ?? ''} onChange={(value) => setEditing((current) => ({ ...current, [key]: { ...draft, notes: value } }))} />
-                              <Field label="Domains" value={draft.domains ?? ''} onChange={(value) => setEditing((current) => ({ ...current, [key]: { ...draft, domains: value } }))} />
-                              <label className="flex items-center gap-2 text-sm text-slate-300">
-                                <input
-                                  type="checkbox"
-                                  checked={draft.active ?? true}
-                                  onChange={(e) => setEditing((current) => ({ ...current, [key]: { ...draft, active: e.target.checked } }))}
-                                />
-                                Active
-                              </label>
-                              <div className="flex gap-2 md:col-span-2">
-                                <button className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950" type="button" onClick={() => void saveClient(client)}>
-                                  Save
-                                </button>
-                                <button
-                                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white"
-                                  type="button"
-                                  onClick={() =>
-                                    setEditing((current) => {
-                                      const next = { ...current };
-                                      delete next[key];
-                                      return next;
-                                    })
-                                  }
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) : null}
-
-                          <div className="mt-4 space-y-3">
-                            <div className="text-sm font-medium text-white">Allowed Domains</div>
-                            <div className="flex flex-wrap gap-2">
-                              {(client.allowedDomains ?? []).length ? (
-                                client.allowedDomains?.map((entry) => (
-                                  <button key={entry.domain} type="button" onClick={() => void handleRemoveDomain(client, entry.domain)} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-200">
-                                    {entry.domain} ×
-                                  </button>
-                                ))
-                              ) : (
-                                <span className="text-sm text-slate-400">No allowed domains</span>
-                              )}
-                            </div>
-                            <div className="flex flex-col gap-2 sm:flex-row">
-                              <input
-                                className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-2 text-white outline-none placeholder:text-slate-500"
-                                placeholder="example.com"
-                                value={domainDrafts[key] ?? ''}
-                                onChange={(e) => setDomainDrafts((current) => ({ ...current, [key]: e.target.value }))}
-                              />
-                              <button className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white" type="button" onClick={() => void handleAddDomain(client)}>
-                                Add Domain
-                              </button>
-                            </div>
+                          <div className="mt-1 text-sm text-slate-300">{client.clientId ?? key}</div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                            <MiniStat label="Created" value={formatDate(client.createdAt)} />
+                            <MiniStat label="Updated" value={formatDate(client.updatedAt)} />
+                            <MiniStat label="Last API usage" value={formatDate(stats.lastApiUsage ?? client.lastApiUsage ?? null)} />
+                            <MiniStat label="Latest key env" value={latestKey?.environment ?? stats.latestApiKeyEnvironment ?? 'prod'} />
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <EmptyState title="No clients found" description="Try a broader search or add a new client." />
-                )}
-                <div className="mt-5 flex items-center justify-between gap-3 text-sm text-slate-300">
-                  <button
-                    className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-white disabled:opacity-40"
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => setPage((current) => Math.max(current - 1, 1))}
-                  >
-                    Previous
-                  </button>
-                  <div>Page {data.page}</div>
-                  <button
-                    className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-white disabled:opacity-40"
-                    type="button"
-                    disabled={data.items.length < data.limit}
-                    onClick={() => setPage((current) => current + 1)}
-                  >
-                    Next
-                  </button>
-                </div>
-              </Panel>
-            ) : null}
-          </div>
-        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white"
+                            href={`/clients/${encodeURIComponent(key)}` as never}
+                          >
+                            View
+                          </Link>
+                          <Link
+                            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white"
+                            href={`/clients/${encodeURIComponent(key)}/edit` as never}
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100 disabled:opacity-60"
+                            type="button"
+                            disabled={rotateMutation.isPending}
+                            onClick={() => void rotateMutation.mutateAsync(client)}
+                          >
+                            Rotate API Key
+                          </button>
+                          <button
+                            className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100 disabled:opacity-60"
+                            type="button"
+                            disabled={toggleMutation.isPending}
+                            onClick={() => void toggleMutation.mutateAsync(client)}
+                          >
+                            {client.active ? 'Disable' : 'Enable'}
+                          </button>
+                          <button
+                            className="rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-100 disabled:opacity-60"
+                            type="button"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => void deleteMutation.mutateAsync(client)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState title="No clients found" description="Try a different search or create a new client." />
+            )}
+
+            <div className="mt-5 flex items-center justify-between gap-3 text-sm text-slate-300">
+              <button
+                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-white disabled:opacity-40"
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((current) => Math.max(current - 1, 1))}
+              >
+                Previous
+              </button>
+              <div>
+                Page {clientsQuery.data.page} of {clientsQuery.data.totalPages ?? Math.max(Math.ceil(total / (clientsQuery.data.limit || 1)), 1)}
+              </div>
+              <button
+                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-white disabled:opacity-40"
+                type="button"
+                disabled={clients.length < (clientsQuery.data.limit ?? 10)}
+                onClick={() => setPage((current) => current + 1)}
+              >
+                Next
+              </button>
+            </div>
+          </Panel>
+        ) : null}
       </PageShell>
     </ProtectedLayout>
   );
 }
 
-function Field({ label, value, onChange, required }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
+function MiniStat({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
-    <label className="space-y-1 text-sm text-slate-300">
-      <span>{label}</span>
-      <input
-        className="w-full rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-2 text-white outline-none placeholder:text-slate-500"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-      />
-    </label>
+    <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-3">
+      <div className="text-[11px] uppercase tracking-[0.25em] text-slate-400">{label}</div>
+      <div className="mt-1 truncate text-sm text-white">{value ?? 'N/A'}</div>
+    </div>
   );
 }
 
+function CopyButton({ text }: { text: string }) {
+  const { toast } = useToast();
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(text);
+    toast({ title: 'Copied to clipboard', tone: 'success' });
+  };
+
+  return (
+    <button className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white" type="button" onClick={() => void copy()}>
+      Copy API Key
+    </button>
+  );
+}

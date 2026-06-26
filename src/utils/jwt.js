@@ -34,7 +34,7 @@ function getSecrets() {
   };
 }
 
-export function signAccessToken({ adminId, tenantId, role, scopes }) {
+export function signAccessToken({ adminId, tenantId, role, scopes, sessionId, sessionVersion }) {
   const { accessSecret, accessTtlSeconds } = getSecrets();
 
   return jwt.sign(
@@ -43,14 +43,16 @@ export function signAccessToken({ adminId, tenantId, role, scopes }) {
       adminId,
       tenantId,
       role: role || 'admin',
-      scopes: scopes || []
+      scopes: scopes || [],
+      sessionId,
+      sessionVersion: Number(sessionVersion ?? 0)
     },
     accessSecret,
     { expiresIn: accessTtlSeconds }
   );
 }
 
-export function signRefreshToken({ adminId, tenantId, role }) {
+export function signRefreshToken({ adminId, tenantId, role, sessionId, sessionVersion }) {
   const { refreshSecret, refreshTtlSeconds } = getSecrets();
 
   return jwt.sign(
@@ -58,7 +60,9 @@ export function signRefreshToken({ adminId, tenantId, role }) {
       typ: 'refresh',
       adminId,
       tenantId,
-      role: role || 'admin'
+      role: role || 'admin',
+      sessionId,
+      sessionVersion: Number(sessionVersion ?? 0)
     },
     refreshSecret,
     { expiresIn: refreshTtlSeconds }

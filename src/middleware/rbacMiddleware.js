@@ -8,7 +8,18 @@ import { AppError } from '../utils/AppError.js';
 const ROLE_PERMISSIONS = {
   platform_admin: ['*'],
   super_admin: ['*'],
-  admin: ['clients:read', 'leads:read', 'leads:write', 'exports:read', 'exports:write', 'audit:read', 'settings:read', 'settings:write'],
+  admin: [
+    'clients:read',
+    'clients:write',
+    'clients:delete',
+    'leads:read',
+    'leads:write',
+    'exports:read',
+    'exports:write',
+    'audit:read',
+    'settings:read',
+    'settings:write'
+  ],
   manager: ['leads:read', 'leads:write', 'exports:read', 'exports:write', 'audit:read'],
   viewer: ['leads:read', 'exports:read', 'audit:read']
 };

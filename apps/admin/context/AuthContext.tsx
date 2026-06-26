@@ -12,7 +12,7 @@ export type AuthContextValue = {
   loading: boolean;
   isAuthenticated: boolean;
   login: (credentials: { email: string; password: string }) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (refreshToken?: string) => Promise<void>;
   refreshSession: () => Promise<void>;
 };
 

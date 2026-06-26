@@ -11,7 +11,10 @@ export function Sidebar() {
     { href: '/leads', label: 'Leads' },
     { href: '/exports', label: 'Exports' },
     { href: '/audit-logs', label: 'Audit Logs' },
-    { href: '/settings', label: 'Settings' }
+    { href: '/notifications', label: 'Notifications' },
+    { href: '/profile', label: 'Profile' },
+    { href: '/settings', label: 'Settings' },
+    { href: '/maintenance', label: 'Maintenance' }
   ];
 
   return (
@@ -33,7 +36,7 @@ export function Sidebar() {
                     ? 'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20'
                     : 'text-slate-200 hover:bg-white/8 hover:text-white'
                 ].join(' ')}
-                href={item.href as any}
+                href={item.href as never}
               >
                 {item.label}
               </Link>

@@ -18,6 +18,8 @@ import { buildLeadManagementRouter } from './routes/leadManagementRoutes.js';
 import { buildExportRouter } from './routes/exportRoutes.js';
 import { buildAuditLogRouter } from './routes/auditLogRoutes.js';
 import { buildDashboardRouter } from './routes/dashboardRoutes.js';
+import { buildNotificationRouter } from './routes/notificationRoutes.js';
+import { buildSettingsRouter } from './routes/settingsRoutes.js';
 
 import { buildSwaggerSpec } from './config/swagger.js';
 
@@ -101,6 +103,8 @@ export function createApp() {
   app.use('/api/exports', buildExportRouter());
   app.use('/api/audit-logs', buildAuditLogRouter());
   app.use('/api/dashboard', buildDashboardRouter());
+  app.use('/api/notifications', buildNotificationRouter());
+  app.use('/api/settings', buildSettingsRouter());
 
 
   // Attach request correlation context (requestId/ip/userAgent)

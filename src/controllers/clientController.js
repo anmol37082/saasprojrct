@@ -172,8 +172,14 @@ export async function getAllClientsController(req, res, next) {
     const limit = req.query?.limit;
     const search = req.query?.search;
     const active = req.query?.active;
+    const status = req.query?.status;
 
-    const activeBool = active === undefined ? undefined : active === 'true' || active === true;
+    let activeBool;
+    if (typeof status === 'string' && status.trim().length > 0 && status !== 'all') {
+      activeBool = status === 'active';
+    } else if (active !== undefined && active !== '' && active !== 'all') {
+      activeBool = active === 'true' || active === true;
+    }
 
     const result = await clientService.listClients({ page, limit, search, active: activeBool });
 
