@@ -103,9 +103,7 @@ export async function createLead({ tenantId, sourceDomain, leadPayload, requestC
   try {
     const lead = await Lead.create({
       tenantId,
-      clientId: requestContext?.clientId || null,
       status: 'new',
-      sourceDomain: sourceDomain || '',
       dynamicData: sanitized,
       promotedFields: promotedFields || {},
       schemaVersion: 1,
@@ -113,7 +111,9 @@ export async function createLead({ tenantId, sourceDomain, leadPayload, requestC
       userAgent: requestContext?.userAgent || '',
       referer: requestContext?.referer || '',
       metadata: {
-        requestId: requestContext?.requestId || null
+        requestId: requestContext?.requestId || null,
+        clientId: requestContext?.clientId || null,
+        sourceDomain: sourceDomain || null
       }
     });
 
@@ -127,6 +127,10 @@ export async function createLead({ tenantId, sourceDomain, leadPayload, requestC
       clientId: requestContext?.clientId || null,
       payloadKeys: leadPayload && typeof leadPayload === 'object' ? Object.keys(leadPayload) : [],
       error: error instanceof Error ? error.message : String(error),
+      errorCode: error?.code ?? null,
+      keyPattern: error?.keyPattern ?? null,
+      keyValue: error?.keyValue ?? null,
+      duplicateKey: error?.errmsg ?? error?.message ?? null,
       stack: error instanceof Error ? error.stack : undefined
     });
 

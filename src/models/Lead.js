@@ -19,7 +19,7 @@ const LeadSchema = new Schema(
 
     clientId: {
       type: String,
-      default: null,
+      default: undefined,
       index: true
     },
 
@@ -32,6 +32,7 @@ const LeadSchema = new Schema(
     sourceDomain: {
       type: String,
       required: false,
+      default: undefined,
       index: true
     },
 

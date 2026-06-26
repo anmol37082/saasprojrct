@@ -52,8 +52,11 @@ function buildLeadFilter({ tenantId, search, startDate, endDate }) {
   if (searchRx) {
     filter.$or = [
       { sourceDomain: searchRx },
+      { 'metadata.sourceDomain': searchRx },
       { status: searchRx },
       { leadExternalId: searchRx },
+      { clientId: searchRx },
+      { 'metadata.clientId': searchRx },
       { 'promotedFields.email': searchRx },
       { 'promotedFields.name': searchRx },
       { 'dynamicData.email': searchRx },

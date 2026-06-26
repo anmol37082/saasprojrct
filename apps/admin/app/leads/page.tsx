@@ -88,9 +88,17 @@ function getLeadContact(lead: Lead) {
   return toText(lead.email ?? lead.promotedFields?.email ?? lead.dynamicData?.email ?? lead.phone ?? lead.promotedFields?.phone ?? lead.dynamicData?.phone ?? '');
 }
 
+function getLeadSource(lead: Lead) {
+  return toText(lead.sourceDomain ?? lead.metadata?.sourceDomain ?? 'unknown source');
+}
+
 function getLeadStatistics(data?: LeadsListResponse | null): LeadStatistics {
   const items = data?.items ?? [];
-  const uniqueSources = new Set(items.map((lead) => lead.sourceDomain).filter((value): value is string => Boolean(value && value.trim()))).size;
+  const uniqueSources = new Set(
+    items
+      .map((lead) => lead.sourceDomain ?? lead.metadata?.sourceDomain)
+      .filter((value): value is string => Boolean(value && value.trim()))
+  ).size;
 
   return {
     total: data?.total ?? 0,
@@ -235,7 +243,7 @@ export default function LeadsPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="truncate text-lg font-semibold text-white">{getLeadName(lead)}</h3>
                             <LeadStatusBadge status={lead.status} />
-                            <Badge tone="slate">{lead.sourceDomain ?? 'unknown source'}</Badge>
+                            <Badge tone="slate">{getLeadSource(lead)}</Badge>
                           </div>
 
                           <div className="text-sm text-slate-300">{getLeadContact(lead) || 'No contact details available'}</div>
@@ -244,7 +252,7 @@ export default function LeadsPage() {
                             <InfoCard label="Lead ID" value={leadId} />
                             <InfoCard label="Created" value={lead.createdAt ? new Date(lead.createdAt).toLocaleString() : 'N/A'} />
                             <InfoCard label="Updated" value={lead.updatedAt ? new Date(lead.updatedAt).toLocaleString() : 'N/A'} />
-                            <InfoCard label="Source" value={lead.sourceDomain ?? 'unknown'} />
+                            <InfoCard label="Source" value={getLeadSource(lead)} />
                           </div>
                         </div>
 

@@ -47,6 +47,10 @@ function toRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function getLeadSource(lead: Lead | null) {
+  return lead?.sourceDomain ?? (toRecord(lead?.metadata).sourceDomain as string | undefined) ?? 'unknown source';
+}
+
 function formatDate(value?: string | null) {
   if (!value) return 'N/A';
   const date = new Date(value);
@@ -175,7 +179,7 @@ export default function LeadDetailsPage() {
                 title="Lead Overview"
                 right={
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="slate">{lead.sourceDomain ?? 'unknown source'}</Badge>
+                    <Badge tone="slate">{getLeadSource(lead)}</Badge>
                     <Badge tone={lead.status === 'deleted' ? 'rose' : 'cyan'}>{lead.status ?? 'new'}</Badge>
                   </div>
                 }
