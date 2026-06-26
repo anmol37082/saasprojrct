@@ -93,7 +93,7 @@ export default function NewClientPage() {
         description="Create a client, generate the first API key, and copy the key before you leave the page."
         actions={<Link className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white" href={'/clients' as never}>Back to clients</Link>}
       >
-        <div className="grid gap-6 xl:grid-cols-[1fr_1.1fr]">
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
           <Panel title="New Client">
             <form onSubmit={(event) => void submit(event)} className="space-y-4">
               <Field label="Client Name" value={form.clientName} onChange={(value) => setForm((current) => ({ ...current, clientName: value }))} required />
@@ -145,7 +145,7 @@ export default function NewClientPage() {
             ) : null}
           </Panel>
 
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             {client ? (
               <Panel title="Created Client" right={<Badge tone={client.active ? 'emerald' : 'rose'}>{client.active ? 'active' : 'inactive'}</Badge>}>
                 <div className="space-y-4">
@@ -215,7 +215,7 @@ function Field({
   placeholder?: string;
 }) {
   return (
-    <label className="space-y-1 text-sm text-slate-300">
+    <label className="block space-y-1 text-sm text-slate-300">
       <span>{label}</span>
       {textarea ? (
         <textarea
@@ -240,9 +240,9 @@ function Field({
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/5 p-3">
+    <div className="min-w-0 rounded-2xl border border-white/8 bg-white/5 p-3">
       <div className="text-[11px] uppercase tracking-[0.25em] text-slate-400">{label}</div>
-      <div className="mt-1 text-sm text-white">{value}</div>
+      <div className="mt-1 break-words text-sm text-white">{value}</div>
     </div>
   );
 }
@@ -271,7 +271,7 @@ function SnippetCard({ title, code }: { title: string; code: string }) {
   };
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+    <div className="min-w-0 rounded-3xl border border-white/10 bg-white/5 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-white">{title}</div>
