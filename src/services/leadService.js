@@ -100,23 +100,46 @@ export function extractPromotedFields(dynamicData) {
 export async function createLead({ tenantId, sourceDomain, leadPayload, requestContext, promotedFields }) {
   const sanitized = sanitizePayloadForStorage(leadPayload);
 
-  const lead = await Lead.create({
-    tenantId,
-    clientId: requestContext?.clientId || null,
-    status: 'new',
-    sourceDomain: sourceDomain || '',
-    dynamicData: sanitized,
-    promotedFields: promotedFields || {},
-    schemaVersion: 1,
-    ipAddress: requestContext?.ipAddress || '',
-    userAgent: requestContext?.userAgent || '',
-    referer: requestContext?.referer || '',
-    metadata: {
-      requestId: requestContext?.requestId || null
-    }
-  });
+  try {
+    const lead = await Lead.create({
+      tenantId,
+      clientId: requestContext?.clientId || null,
+      status: 'new',
+      sourceDomain: sourceDomain || '',
+      dynamicData: sanitized,
+      promotedFields: promotedFields || {},
+      schemaVersion: 1,
+      ipAddress: requestContext?.ipAddress || '',
+      userAgent: requestContext?.userAgent || '',
+      referer: requestContext?.referer || '',
+      metadata: {
+        requestId: requestContext?.requestId || null
+      }
+    });
 
-  return { accepted: true, leadId: lead._id.toString() };
+    return { accepted: true, leadId: lead._id.toString() };
+  } catch (error) {
+    logger.error({
+      message: 'Lead create failed',
+      tenantId: tenantId ? String(tenantId) : null,
+      sourceDomain,
+      requestId: requestContext?.requestId || null,
+      clientId: requestContext?.clientId || null,
+      payloadKeys: leadPayload && typeof leadPayload === 'object' ? Object.keys(leadPayload) : [],
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+
+    if (error?.name === 'ValidationError') {
+      throw new AppError('Invalid lead payload', 400, 'LEAD_VALIDATION_ERROR');
+    }
+
+    if (error?.code === 11000) {
+      throw new AppError('Lead conflict', 409, 'LEAD_CONFLICT');
+    }
+
+    throw error;
+  }
 }
 
 export async function logLeadAccepted({ tenantId, actor, leadId, sourceDomain, metadata }) {

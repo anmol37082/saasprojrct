@@ -5,7 +5,10 @@ export function errorHandler(err, req, res, _next) {
   const requestId = req?.headers?.['x-request-id'] || undefined;
 
   // Normalize
-  const appError = err instanceof AppError ? err : new AppError('Internal Server Error', 500, 'INTERNAL_ERROR');
+  const appError =
+    err instanceof AppError
+      ? err
+      : new AppError(err?.message || 'Internal Server Error', 500, 'INTERNAL_ERROR');
 
   const statusCode = appError.statusCode || 500;
 
@@ -15,7 +18,10 @@ export function errorHandler(err, req, res, _next) {
     code: appError.code,
     statusCode,
     requestId,
-    stack: appError.stack
+    stack: appError.stack,
+    originalMessage: err instanceof Error ? err.message : String(err),
+    originalName: err instanceof Error ? err.name : typeof err,
+    originalStack: err instanceof Error ? err.stack : undefined
   });
 
   // Never leak internals
