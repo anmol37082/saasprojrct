@@ -49,6 +49,7 @@ export default function ClientDetailsPage() {
   const queryClient = useQueryClient();
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [draft, setDraft] = useState<DomainDraft>(emptyDraft);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || 'http://localhost:3000';
 
   const clientQuery = useQuery({
     queryKey: ['client', clientId],
@@ -63,9 +64,10 @@ export default function ClientDetailsPage() {
     () =>
       buildIntegrationSnippets({
         clientId: client?.clientId ?? clientId,
-        apiKeyPlaceholder: '{{API_KEY}}'
+        apiKeyPlaceholder: '{{API_KEY}}',
+        baseUrl: apiBaseUrl
       }),
-    [client?.clientId, clientId]
+    [apiBaseUrl, client?.clientId, clientId]
   );
 
   const refreshClient = async () => {

@@ -53,7 +53,7 @@ export function getClientStatistics(client: Client): ClientStatistics {
 export function buildIntegrationSnippets({
   clientId,
   apiKeyPlaceholder = '{{API_KEY}}',
-  baseUrl = 'https://api.example.com'
+  baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || 'http://localhost:3000'
 }: {
   clientId: string;
   apiKeyPlaceholder?: string;
@@ -65,32 +65,183 @@ export function buildIntegrationSnippets({
     {
       title: 'HTML Form',
       language: 'html',
-      code: `<form action="${endpoint}" method="post">\n  <input type="hidden" name="clientId" value="${clientId}" />\n  <input type="hidden" name="apiKey" value="${apiKeyPlaceholder}" />\n  <input name="email" type="email" placeholder="name@example.com" />\n  <button type="submit">Submit</button>\n</form>`
+      code: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lead Form</title>
+    <!-- Client ID: ${clientId} -->
+  </head>
+  <body>
+    <form id="lead-form">
+      <label>
+        Name
+        <input name="name" type="text" placeholder="Jane Doe" />
+      </label>
+      <label>
+        Email
+        <input name="email" type="email" placeholder="jane@example.com" />
+      </label>
+      <label>
+        Phone
+        <input name="phone" type="tel" placeholder="+91 98765 43210" />
+      </label>
+      <button type="submit">Submit</button>
+    </form>
+    <p id="lead-status" aria-live="polite"></p>
+    <script>
+      const endpoint = '${endpoint}';
+      const apiKey = '${apiKeyPlaceholder}';
+      const form = document.getElementById('lead-form');
+      const status = document.getElementById('lead-status');
+
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        status.textContent = 'Submitting...';
+
+        try {
+          const payload = Object.fromEntries(new FormData(form).entries());
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Api-Key': apiKey
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message || 'Failed to submit lead');
+          }
+
+          form.reset();
+          status.textContent = 'Lead submitted successfully.';
+        } catch (error) {
+          status.textContent = error instanceof Error ? error.message : 'Failed to submit lead';
+        }
+      });
+    </script>
+  </body>
+</html>`
     },
     {
       title: 'JavaScript Fetch',
       language: 'javascript',
-      code: `await fetch('${endpoint}', {\n  method: 'POST',\n  headers: {\n    'Content-Type': 'application/json',\n    'X-Api-Key': '${apiKeyPlaceholder}'\n  },\n  body: JSON.stringify({\n    clientId: '${clientId}',\n    email: 'lead@example.com'\n  })\n});`
+      code: `// Client ID: ${clientId}
+const endpoint = '${endpoint}';
+
+await fetch(endpoint, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Api-Key': '${apiKeyPlaceholder}'
+  },
+  body: JSON.stringify({
+    name: 'Jane Doe',
+    email: 'lead@example.com',
+    phone: '+91 98765 43210'
+  })
+});`
     },
     {
       title: 'Axios Example',
       language: 'javascript',
-      code: `import axios from 'axios';\n\nawait axios.post('${endpoint}', {\n  clientId: '${clientId}',\n  email: 'lead@example.com'\n}, {\n  headers: {\n    'X-Api-Key': '${apiKeyPlaceholder}'\n  }\n});`
+      code: `import axios from 'axios';
+
+// Client ID: ${clientId}
+await axios.post('${endpoint}', {
+  name: 'Jane Doe',
+  email: 'lead@example.com',
+  phone: '+91 98765 43210'
+}, {
+  headers: {
+    'X-Api-Key': '${apiKeyPlaceholder}'
+  }
+});`
     },
     {
       title: 'React Example',
       language: 'tsx',
-      code: `function LeadForm() {\n  return (\n    <form onSubmit={async (event) => {\n      event.preventDefault();\n      await fetch('${endpoint}', {\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n          'X-Api-Key': '${apiKeyPlaceholder}'\n        },\n        body: JSON.stringify({ clientId: '${clientId}' })\n      });\n    }}>\n      <button type="submit">Send</button>\n    </form>\n  );\n}`
+      code: `"use client";
+
+import { useState, type FormEvent } from 'react';
+
+const endpoint = '${endpoint}';
+
+export default function LeadForm() {
+  const [status, setStatus] = useState('');
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setStatus('Submitting...');
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': '${apiKeyPlaceholder}'
+        },
+        body: JSON.stringify(form)
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to submit lead');
+      }
+
+      setForm({ name: '', email: '', phone: '' });
+      setStatus('Lead submitted successfully.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Failed to submit lead');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <label>
+        Name
+        <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
+      </label>
+      <label>
+        Email
+        <input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} />
+      </label>
+      <label>
+        Phone
+        <input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} />
+      </label>
+      <button type="submit">Send</button>
+      <p aria-live="polite">{status}</p>
+    </form>
+  );
+}`
     },
     {
       title: 'cURL Example',
       language: 'bash',
-      code: `curl -X POST '${endpoint}' \\\n  -H 'Content-Type: application/json' \\\n  -H 'X-Api-Key: ${apiKeyPlaceholder}' \\\n  -d '{"clientId":"${clientId}","email":"lead@example.com"}'`
+      code: `# Client ID: ${clientId}
+curl -X POST '${endpoint}' \\
+  -H 'Content-Type: application/json' \\
+  -H 'X-Api-Key: ${apiKeyPlaceholder}' \\
+  -d '{"name":"Jane Doe","email":"lead@example.com","phone":"+91 98765 43210"}'`
     },
     {
       title: 'Postman Example',
       language: 'text',
-      code: `POST ${endpoint}\nHeaders:\n  Content-Type: application/json\n  X-Api-Key: ${apiKeyPlaceholder}\nBody:\n  { "clientId": "${clientId}", "email": "lead@example.com" }`
+      code: `POST ${endpoint}
+Headers:
+  Content-Type: application/json
+  X-Api-Key: ${apiKeyPlaceholder}
+Body:
+  { "name": "Jane Doe", "email": "lead@example.com", "phone": "+91 98765 43210" }`
     }
   ];
 }

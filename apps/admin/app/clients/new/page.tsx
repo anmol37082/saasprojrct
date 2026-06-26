@@ -47,6 +47,7 @@ export default function NewClientPage() {
   const { toast } = useToast();
   const [form, setForm] = useState<ClientFormState>(initialState);
   const [created, setCreated] = useState<ClientMutationResult | null>(null);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || 'http://localhost:3000';
 
   const createMutation = useMutation({
     mutationFn: (payload: ClientCreateInput) => createClient(payload),
@@ -63,9 +64,10 @@ export default function NewClientPage() {
     const clientId = (created?.client.clientId ?? form.clientId.trim()) || 'client-id';
     return buildIntegrationSnippets({
       clientId,
-      apiKeyPlaceholder: '{{API_KEY}}'
+      apiKeyPlaceholder: '{{API_KEY}}',
+      baseUrl: apiBaseUrl
     });
-  }, [created?.client.clientId, form.clientId]);
+  }, [apiBaseUrl, created?.client.clientId, form.clientId]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

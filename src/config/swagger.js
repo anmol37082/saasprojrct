@@ -26,8 +26,8 @@ export function buildSwaggerSpec({ basePath = '/api' } = {}) {
         apiKeyAuth: {
           type: 'apiKey',
           in: 'header',
-          name: 'Authorization',
-          description: 'API Key authentication. Send your API key in the Authorization header. (Implementation uses middleware apiKeyAuth)'
+          name: 'X-Api-Key',
+          description: 'API Key authentication. Send your API key in the X-Api-Key header.'
         }
       },
       schemas: {
@@ -230,6 +230,13 @@ export function buildSwaggerSpec({ basePath = '/api' } = {}) {
         summary: 'Create a client (admin)',
         security: [{ bearerAuth: [] }],
         responses: { '201': { description: 'Client created' }, '401': { description: 'Unauthorized' }, '403': { description: 'Forbidden' } }
+      },
+      get: {
+        tags: ['Clients'],
+        operationId: 'listClients',
+        summary: 'List clients (admin)',
+        security: [{ bearerAuth: [] }],
+        responses: { '200': { description: 'Clients list retrieved' } }
       }
     },
 
@@ -263,16 +270,6 @@ export function buildSwaggerSpec({ basePath = '/api' } = {}) {
           { name: 'clientId', in: 'path', required: true, schema: { type: 'string' } }
         ],
         responses: { '200': { description: 'Client retrieved' } }
-      }
-    },
-
-    '/clients/': {
-      get: {
-        tags: ['Clients'],
-        operationId: 'listClients',
-        summary: 'List clients (admin)',
-        security: [{ bearerAuth: [] }],
-        responses: { '200': { description: 'Clients list retrieved' } }
       }
     },
 

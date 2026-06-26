@@ -220,7 +220,8 @@ export async function rotateApiKey({ clientDbId, environment = 'prod', actor }) 
 
   return {
     client: serializeClient(client),
-    clientId: client._id.toString(),
+    clientId: client.clientId,
+    clientDbId: client._id.toString(),
     apiKey: plainKey,
     environment
   };

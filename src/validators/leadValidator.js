@@ -62,7 +62,7 @@ function countKeys(obj) {
   return count;
 }
 
-function maxArrayLength(value, currentMax = 0) {
+function getMaxArrayLength(value, currentMax = 0) {
   let maxLen = currentMax;
   const stack = [value];
 
@@ -79,7 +79,7 @@ function maxArrayLength(value, currentMax = 0) {
   return maxLen;
 }
 
-function maxStringLength(value, currentMax = 0) {
+function getMaxStringLength(value, currentMax = 0) {
   let maxLen = currentMax;
   const stack = [value];
 
@@ -127,8 +127,8 @@ export function leadValidator(options = {}) {
     maxPayloadBytes = 1024 * 1000, // 1MB
     maxNestingDepth = 20,
     maxKeyCount = 200,
-    maxArrayLength = 50,
-    maxStringLength = 1000
+    maxArrayLength: maxArrayItems = 50,
+    maxStringLength: maxStringChars = 1000
   } = options;
 
   return (req, _res, next) => {
@@ -158,14 +158,14 @@ export function leadValidator(options = {}) {
       }
 
       // Arrays
-      const arrMaxLen = maxArrayLength(body);
-      if (arrMaxLen > maxArrayLength) {
+      const arrMaxLen = getMaxArrayLength(body);
+      if (arrMaxLen > maxArrayItems) {
         throw new AppError('Array length too large', 400, 'ARRAY_TOO_LARGE');
       }
 
       // Strings
-      const strMax = maxStringLength(body);
-      if (strMax > maxStringLength) {
+      const strMax = getMaxStringLength(body);
+      if (strMax > maxStringChars) {
         throw new AppError('String value too large', 400, 'STRING_TOO_LARGE');
       }
 

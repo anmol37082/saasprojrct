@@ -2,11 +2,32 @@ import { AppError } from '../utils/AppError.js';
 import { hashApiKey } from '../utils/apiKey.js';
 import { Client } from '../models/Client.js';
 
+function readIncomingApiKey(req) {
+  const headers = req.headers ?? {};
+
+  const headerKey = headers['x-api-key'];
+  if (typeof headerKey === 'string' && headerKey.trim()) return headerKey.trim();
+
+  const authorization = headers.authorization;
+  if (typeof authorization === 'string' && authorization.trim()) {
+    const value = authorization.trim();
+    const bearerMatch = value.match(/^Bearer\s+(.+)$/i);
+    if (bearerMatch?.[1]) return bearerMatch[1].trim();
+
+    const apiKeyMatch = value.match(/^ApiKey\s+(.+)$/i);
+    if (apiKeyMatch?.[1]) return apiKeyMatch[1].trim();
+
+    return value;
+  }
+
+  return '';
+}
+
 export function apiKeyAuth({ environment } = {}) {
   return async (req, _res, next) => {
     try {
-      const incoming = req.headers?.['x-api-key'];
-      if (!incoming || typeof incoming !== 'string') {
+      const incoming = readIncomingApiKey(req);
+      if (!incoming) {
         return next(new AppError('Unauthorized', 401, 'MISSING_API_KEY'));
       }
 
