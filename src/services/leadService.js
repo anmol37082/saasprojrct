@@ -2,17 +2,6 @@ import { Lead } from '../models/Lead.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
-import crypto from 'crypto';
-
-function sha256(input) {
-  return crypto.createHash('sha256').update(input, 'utf8').digest('hex');
-}
-
-function safeJsonStringify(value) {
-  // Stable stringify: ensures idempotency hash is order-independent.
-  // This is a foundation approach; Phase 6/7 can refine.
-  return JSON.stringify(value, Object.keys(value).sort());
-}
 
 function buildPromotedFields(dynamicData) {
   // Deterministic extraction strategy:
@@ -172,15 +161,27 @@ export async function createLeadWithAuditing({ tenantId, sourceDomain, leadPaylo
     promotedFields
   });
 
-  await logLeadAccepted({
-    tenantId,
-    actor: null,
-    leadId: result.leadId,
-    sourceDomain,
-    metadata: {
-      requestId: requestContext?.requestId || null
-    }
-  });
+  try {
+    await logLeadAccepted({
+      tenantId,
+      actor: null,
+      leadId: result.leadId,
+      sourceDomain,
+      metadata: {
+        requestId: requestContext?.requestId || null
+      }
+    });
+  } catch (error) {
+    // Lead creation should remain successful even if audit logging is unavailable.
+    logger.warn({
+      message: 'Lead accepted audit log failed',
+      tenantId: tenantId ? String(tenantId) : null,
+      leadId: result.leadId,
+      sourceDomain,
+      requestId: requestContext?.requestId || null,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 
   return { success: true, leadId: result.leadId, requestId: requestContext?.requestId || null };
 }

@@ -29,12 +29,8 @@ export async function createLeadController(req, res, next) {
       requestContext
     });
 
-    if (!result.success) {
-      return res.status(409).json({ success: false, message: 'Duplicate lead', code: result.errorCode, leadId: null, requestId: result.requestId });
-    }
-
     return res.status(201).json({
-      success: true,
+      success: result.success,
       leadId: result.leadId,
       requestId: result.requestId
     });

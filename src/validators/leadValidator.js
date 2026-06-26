@@ -3,6 +3,7 @@ import { AppError } from '../utils/AppError.js';
 const RESERVED_TOP_LEVEL_KEYS = new Set([
   'tenantId',
   'clientId',
+  'leadExternalId',
   'promotedFields',
   'schemaVersion',
   'metadata',

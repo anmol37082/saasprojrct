@@ -23,13 +23,6 @@ const LeadSchema = new Schema(
       index: true
     },
 
-    // Optional stable external id for idempotency.
-    leadExternalId: {
-      type: String,
-      default: undefined,
-      index: true
-    },
-
     status: {
       type: String,
       default: 'new',
@@ -96,10 +89,7 @@ LeadSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 // 3) Optional sourceDomain filtering.
 LeadSchema.index({ tenantId: 1, sourceDomain: 1, createdAt: -1 });
 
-// 4) Optional idempotency lookup when leadExternalId is provided explicitly.
-LeadSchema.index({ tenantId: 1, leadExternalId: 1 }, { unique: true, sparse: true });
-
-// 5) If promotedFields includes common searchable keys (configured later),
+// 4) If promotedFields includes common searchable keys (configured later),
 // create indexes in Phase 3 using precise field paths.
 // e.g. LeadSchema.index({ tenantId: 1, 'promotedFields.email': 1 });
 

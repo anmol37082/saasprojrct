@@ -354,7 +354,6 @@ export function buildSwaggerSpec({ basePath = '/api' } = {}) {
           '201': { description: 'Lead created' },
           '401': { description: 'Unauthorized' },
           '403': { description: 'Domain not allowed' },
-          '409': { description: 'Duplicate lead' },
           '400': { description: 'Validation error' }
         }
       }
