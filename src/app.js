@@ -50,8 +50,13 @@ export function createApp() {
   const allowedOrigins = env.CORS_ORIGINS.length ? env.CORS_ORIGINS : undefined;
   app.use(
     cors({
-      origin: allowedOrigins || true,
-      credentials: true,
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (!allowedOrigins) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(null, false);
+      },
+      credentials: false,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Domain', 'X-Request-Id', 'Idempotency-Key', 'Accept']
     })
