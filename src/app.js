@@ -41,6 +41,22 @@ export function createApp() {
   // Trust proxy if behind Vercel / reverse proxy
   app.set('trust proxy', 1);
 
+  // Some proxy/serverless adapters hand Express an absolute request URL.
+  // Normalizing it early keeps Express internals on the WHATWG-safe path and
+  // avoids `url.parse()` deprecation warnings in Node 22+.
+  app.use((req, _res, next) => {
+    const rawUrl = req.url;
+    if (typeof rawUrl === 'string' && /^https?:\/\//i.test(rawUrl)) {
+      try {
+        const parsed = new URL(rawUrl);
+        req.url = `${parsed.pathname}${parsed.search}`;
+      } catch {
+        // Leave the original URL untouched if parsing fails.
+      }
+    }
+    next();
+  });
+
   // Security headers
   app.use(
     helmet({
