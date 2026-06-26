@@ -210,7 +210,7 @@ export async function logLeadRejected({ tenantId, actor, reason, metadata }) {
     resource: 'Lead',
     resourceId: '',
     metadata: { reason, ...metadata },
-    severity: 'warn'
+    severity: 'warning'
   });
 }
 
