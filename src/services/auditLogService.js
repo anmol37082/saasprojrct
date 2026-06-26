@@ -66,14 +66,23 @@ export async function logAuditEvent({ actor = null, tenantId = null, action, res
     throw new AppError('Audit event requires action and resource', 400, 'INVALID_AUDIT_EVENT');
   }
 
-  return AuditLog.create({
-    actor,
-    tenantId,
-    action,
-    resource,
-    resourceId: String(resourceId || ''),
-    severity,
-    metadata
-  });
+  try {
+    return await AuditLog.create({
+      actor,
+      tenantId,
+      action,
+      resource,
+      resourceId: String(resourceId || ''),
+      severity,
+      metadata
+    });
+  } catch (error) {
+    console.warn('Audit log creation failed', {
+      action,
+      resource,
+      tenantId: tenantId ? String(tenantId) : null,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return null;
+  }
 }
-

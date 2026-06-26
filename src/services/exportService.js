@@ -77,15 +77,23 @@ function getExportHeaders({ includeDynamic = false } = {}) {
 }
 
 async function audit({ tenantId, actor, action, resourceId, metadata }) {
-  await AuditLog.create({
-    tenantId: tenantId || null,
-    actor: actor || null,
-    action,
-    resource: 'Export',
-    resourceId: resourceId ? String(resourceId) : '',
-    metadata: metadata || {},
-    severity: 'info'
-  });
+  try {
+    await AuditLog.create({
+      tenantId: tenantId || null,
+      actor: actor || null,
+      action,
+      resource: 'Export',
+      resourceId: resourceId ? String(resourceId) : '',
+      metadata: metadata || {},
+      severity: 'info'
+    });
+  } catch (error) {
+    console.warn('Audit write failed for export action', {
+      action,
+      tenantId: tenantId ? String(tenantId) : null,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 }
 
 export function buildLeadExportQuery({ tenantId, filters }) {

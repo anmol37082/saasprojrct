@@ -139,6 +139,10 @@ export async function deleteLead({ tenantId, id, actor }) {
   const lead = tenantId ? await Lead.findOne({ _id: id, tenantId }) : await Lead.findById(id);
   if (!lead) throw new AppError('Lead not found', 404, 'LEAD_NOT_FOUND');
 
+  if (lead.status === 'deleted') {
+    return { ok: true, alreadyDeleted: true };
+  }
+
   // Soft delete
   lead.status = 'deleted';
   await lead.save();

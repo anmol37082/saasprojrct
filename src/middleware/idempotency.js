@@ -45,15 +45,23 @@ export function idempotency({ ttlMs = 1000 * 60 * 10, resource = 'lead_ingest' }
       }
 
       // Store a reservation record to prevent race duplicates.
-      await AuditLog.create({
-        tenantId,
-        actor: null,
-        action: 'Idempotency Set',
-        resource: resource,
-        resourceId: computedKey,
-        metadata: { idempotencyHash: computedKey },
-        severity: 'info'
-      });
+      try {
+        await AuditLog.create({
+          tenantId,
+          actor: null,
+          action: 'Idempotency Set',
+          resource: resource,
+          resourceId: computedKey,
+          metadata: { idempotencyHash: computedKey },
+          severity: 'info'
+        });
+      } catch (error) {
+        console.warn('Idempotency reservation audit write failed', {
+          tenantId: tenantId ? String(tenantId) : null,
+          resource,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
 
       return next();
     } catch (err) {
