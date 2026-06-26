@@ -12,10 +12,10 @@ export function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-5 shadow-lg shadow-slate-950/20">
+    <div className="rounded-[1.75rem] border border-white/10 bg-slate-950/35 p-5 shadow-lg shadow-slate-950/20 backdrop-blur-sm">
       <div className="text-sm text-slate-300">{label}</div>
-      <div className="mt-2 text-3xl font-semibold text-white">{value}</div>
-      {hint ? <div className="mt-2 text-xs uppercase tracking-[0.2em] text-cyan-200/60">{hint}</div> : null}
+      <div className="mt-2 font-display text-3xl font-semibold text-white">{value}</div>
+      {hint ? <div className="mt-2 text-[11px] uppercase tracking-[0.24em] text-cyan-200/60">{hint}</div> : null}
     </div>
   );
 }
@@ -30,9 +30,9 @@ export function Panel({
   right?: ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-slate-950/40 p-5 shadow-lg shadow-slate-950/20">
+    <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/35 p-5 shadow-lg shadow-slate-950/20 backdrop-blur-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
+        <h2 className="font-display text-lg font-semibold text-white">{title}</h2>
         {right}
       </div>
       {children}
@@ -51,4 +51,3 @@ export function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?
 
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${tones[tone]}`}>{children}</span>;
 }
-
