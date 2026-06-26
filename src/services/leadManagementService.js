@@ -74,6 +74,22 @@ async function audit({ tenantId, actor, action, resource, resourceId, metadata }
   await AuditLog.create({ tenantId, actor: actor || null, action, resource, resourceId: resourceId || '', metadata: metadata || {}, severity: 'info' });
 }
 
+async function safeAudit(details) {
+  try {
+    await audit(details);
+  } catch (error) {
+    // Admin actions should still succeed if audit persistence is temporarily unavailable.
+    // We intentionally swallow the error here and keep the business operation non-blocking.
+    console.warn('Audit write failed for lead management action', {
+      action: details?.action,
+      resource: details?.resource,
+      resourceId: details?.resourceId,
+      tenantId: details?.tenantId ? String(details.tenantId) : null,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
 export async function listLeads({ tenantId, query, sort, page, limit }) {
   const filters = normalizeFilters(query, tenantId);
 
@@ -127,7 +143,7 @@ export async function deleteLead({ tenantId, id, actor }) {
   lead.status = 'deleted';
   await lead.save();
 
-  await audit({ tenantId, actor, action: 'Lead Deleted', resource: 'Lead', resourceId: id, metadata: {} });
+  await safeAudit({ tenantId, actor, action: 'Lead Deleted', resource: 'Lead', resourceId: id, metadata: {} });
 
   return { ok: true };
 }
@@ -142,7 +158,7 @@ export async function updateLead({ tenantId, id, update = {}, actor }) {
 
   await lead.save();
 
-  await audit({
+  await safeAudit({
     tenantId,
     actor,
     action: 'Lead Updated',
@@ -155,7 +171,7 @@ export async function updateLead({ tenantId, id, update = {}, actor }) {
 }
 
 export async function logLeadViewed({ tenantId, actor, leadId }) {
-  await audit({ tenantId, actor, action: 'Lead Viewed', resource: 'Lead', resourceId: leadId, metadata: {} });
+  await safeAudit({ tenantId, actor, action: 'Lead Viewed', resource: 'Lead', resourceId: leadId, metadata: {} });
 }
 
 export async function getLeadsForExportQuery({ tenantId, query }) {

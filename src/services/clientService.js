@@ -16,6 +16,20 @@ async function writeAudit({ actor, action, resource, resourceId, tenantId, metad
   });
 }
 
+async function safeWriteAudit(details) {
+  try {
+    await writeAudit(details);
+  } catch (error) {
+    console.warn('Audit write failed for client action', {
+      action: details?.action,
+      resource: details?.resource,
+      resourceId: details?.resourceId,
+      tenantId: details?.tenantId ? String(details.tenantId) : null,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
 function normalizeAllowedDomains(allowedDomains) {
   if (!Array.isArray(allowedDomains)) return [];
   return allowedDomains.map((d) => {
@@ -85,7 +99,7 @@ export async function createClient({ clientName, clientId, active = true, enviro
     subscriptionStatus: 'inactive'
   });
 
-  await writeAudit({
+  await safeWriteAudit({
     actor,
     action: 'CLIENT_CREATED',
     resource: 'Client',
@@ -108,7 +122,7 @@ export async function updateClient({ clientDbId, update, actor }) {
   Object.assign(client, update);
   await client.save();
 
-  await writeAudit({
+  await safeWriteAudit({
     actor,
     action: 'CLIENT_UPDATED',
     resource: 'Client',
@@ -126,7 +140,7 @@ export async function deleteClient({ clientDbId, actor }) {
 
   await Client.deleteOne({ _id: clientDbId });
 
-  await writeAudit({
+  await safeWriteAudit({
     actor,
     action: 'CLIENT_DELETED',
     resource: 'Client',
@@ -145,7 +159,7 @@ export async function activateClient({ clientDbId, actor }) {
   client.active = true;
   await client.save();
 
-  await writeAudit({
+  await safeWriteAudit({
     actor,
     action: 'CLIENT_ACTIVATED',
     resource: 'Client',
@@ -164,7 +178,7 @@ export async function deactivateClient({ clientDbId, actor }) {
   client.active = false;
   await client.save();
 
-  await writeAudit({
+  await safeWriteAudit({
     actor,
     action: 'CLIENT_DEACTIVATED',
     resource: 'Client',
@@ -209,7 +223,7 @@ export async function rotateApiKey({ clientDbId, environment = 'prod', actor }) 
 
   await client.save();
 
-  await writeAudit({
+  await safeWriteAudit({
     actor,
     action: 'API_KEY_ROTATED',
     resource: 'Client',
@@ -243,7 +257,7 @@ export async function addDomain({ clientDbId, domain, allowSubdomains = false, e
 
   await client.save();
 
-  await writeAudit({
+  await safeWriteAudit({
     actor,
     action: 'DOMAIN_ADDED',
     resource: 'Client',
@@ -264,7 +278,7 @@ export async function removeDomain({ clientDbId, domain, actor }) {
 
   await client.save();
 
-  await writeAudit({
+  await safeWriteAudit({
     actor,
     action: 'DOMAIN_REMOVED',
     resource: 'Client',
