@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { clearAuthTokens, getAccessToken, getRefreshToken, setAuthTokens } from './auth-storage';
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+const configuredBaseURL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+const baseURL = configuredBaseURL && configuredBaseURL.length > 0 ? configuredBaseURL : '';
 
 export const axiosInstance = axios.create({
   baseURL,
