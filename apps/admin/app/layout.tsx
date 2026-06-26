@@ -3,24 +3,7 @@ import './globals.css';
 import AuthProvider from '../providers/AuthProvider';
 import QueryProvider from '../providers/QueryProvider';
 import ToastProvider from '../providers/ToastProvider';
-import { Manrope, Space_Grotesk, IBM_Plex_Mono } from 'next/font/google';
 import type { Metadata } from 'next';
-
-const bodyFont = Manrope({
-  subsets: ['latin'],
-  variable: '--font-body'
-});
-
-const displayFont = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-display'
-});
-
-const monoFont = IBM_Plex_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  weight: ['400', '500']
-});
 
 export const metadata: Metadata = {
   title: {
@@ -42,8 +25,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${bodyFont.variable} ${displayFont.variable} ${monoFont.variable}`}>
-      <body className="min-h-screen bg-slate-950 text-slate-50 antialiased font-[family-name:var(--font-body)]" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-slate-950 text-slate-50 antialiased" suppressHydrationWarning>
         <QueryProvider>
           <ToastProvider>
             <AuthProvider>{children}</AuthProvider>

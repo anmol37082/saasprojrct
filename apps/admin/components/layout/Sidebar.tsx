@@ -19,10 +19,10 @@ export function Sidebar() {
 
   return (
     <aside className="hidden w-64 shrink-0 lg:block">
-      <div className="sticky top-4 rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-4 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
+      <div className="sticky top-4 rounded-3xl border border-white/10 bg-slate-950/60 p-4 shadow-xl shadow-slate-950/30 backdrop-blur">
         <div className="mb-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3">
-          <div className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">SaaS Admin</div>
-          <div className="font-display mt-1 text-lg font-semibold text-white">Operations Console</div>
+          <div className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">SaaS Admin</div>
+          <div className="mt-1 text-lg font-semibold text-white">Operations Console</div>
         </div>
         <nav className="space-y-1">
           {navItems.map((item) => {
@@ -31,7 +31,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 className={[
-                  'block rounded-2xl px-3 py-2.5 text-sm font-medium tracking-[-0.01em] transition',
+                  'block rounded-2xl px-3 py-2.5 text-sm font-medium transition',
                   active
                     ? 'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20'
                     : 'text-slate-200 hover:bg-white/8 hover:text-white'
