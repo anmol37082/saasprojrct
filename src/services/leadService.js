@@ -2,6 +2,7 @@ import { Lead } from '../models/Lead.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
+import { randomUUID } from 'crypto';
 
 function buildPromotedFields(dynamicData) {
   // Deterministic extraction strategy:
@@ -103,6 +104,7 @@ export async function createLead({ tenantId, sourceDomain, leadPayload, requestC
   try {
     const lead = await Lead.create({
       tenantId,
+      leadExternalId: requestContext?.requestId || randomUUID(),
       status: 'new',
       dynamicData: sanitized,
       promotedFields: promotedFields || {},

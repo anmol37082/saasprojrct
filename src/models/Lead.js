@@ -23,6 +23,15 @@ const LeadSchema = new Schema(
       index: true
     },
 
+    // Stable per-lead external identifier.
+    // Used to keep ingestion-compatible with existing unique indexes while allowing
+    // repeated submissions of the same form payload.
+    leadExternalId: {
+      type: String,
+      default: undefined,
+      index: true
+    },
+
     status: {
       type: String,
       default: 'new',
