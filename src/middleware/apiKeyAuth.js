@@ -20,6 +20,12 @@ function readIncomingApiKey(req) {
     return value;
   }
 
+  const bodyApiKey = req.body?.apiKey;
+  if (typeof bodyApiKey === 'string' && bodyApiKey.trim()) return bodyApiKey.trim();
+
+  const queryApiKey = req.query?.apiKey;
+  if (typeof queryApiKey === 'string' && queryApiKey.trim()) return queryApiKey.trim();
+
   return '';
 }
 
@@ -29,6 +35,11 @@ export function apiKeyAuth({ environment } = {}) {
       const incoming = readIncomingApiKey(req);
       if (!incoming) {
         return next(new AppError('Unauthorized', 401, 'MISSING_API_KEY'));
+      }
+
+      if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+        delete req.body.apiKey;
+        delete req.body.clientId;
       }
 
       const keyHash = hashApiKey(incoming);

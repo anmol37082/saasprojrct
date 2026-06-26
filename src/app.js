@@ -69,7 +69,7 @@ export function createApp() {
     origin: true,
     credentials: false,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Domain', 'X-Request-Id', 'Idempotency-Key', 'Accept']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Api-Key', 'X-Client-Domain', 'X-Request-Id', 'Idempotency-Key', 'Accept']
   };
   app.use(cors(corsOptions));
   app.options(/.*/, cors(corsOptions));
@@ -100,6 +100,16 @@ export function createApp() {
   app.get('/health', (req, res) => {
     const locals = createAppLocals(req);
     return res.status(200).json({ ok: true, ...locals.publicView() });
+  });
+
+  // Helpful root response for Vercel deployments and browser hits.
+  app.get('/', (_req, res) => {
+    return res.status(200).json({
+      ok: true,
+      message: 'Multi-tenant Lead SaaS API is running',
+      docs: '/api/docs',
+      health: '/health'
+    });
   });
 
   // Swagger UI

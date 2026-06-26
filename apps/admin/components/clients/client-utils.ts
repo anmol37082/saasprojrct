@@ -74,7 +74,8 @@ export function buildIntegrationSnippets({
     <!-- Client ID: ${clientId} -->
   </head>
   <body>
-    <form id="lead-form">
+    <form action="${endpoint}" method="post">
+      <input type="hidden" name="apiKey" value="${apiKeyPlaceholder}" />
       <label>
         Name
         <input name="name" type="text" placeholder="Jane Doe" />
@@ -89,40 +90,6 @@ export function buildIntegrationSnippets({
       </label>
       <button type="submit">Submit</button>
     </form>
-    <p id="lead-status" aria-live="polite"></p>
-    <script>
-      const endpoint = '${endpoint}';
-      const apiKey = '${apiKeyPlaceholder}';
-      const form = document.getElementById('lead-form');
-      const status = document.getElementById('lead-status');
-
-      form.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        status.textContent = 'Submitting...';
-
-        try {
-          const payload = Object.fromEntries(new FormData(form).entries());
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Api-Key': apiKey
-            },
-            body: JSON.stringify(payload)
-          });
-
-          if (!response.ok) {
-            const message = await response.text();
-            throw new Error(message || 'Failed to submit lead');
-          }
-
-          form.reset();
-          status.textContent = 'Lead submitted successfully.';
-        } catch (error) {
-          status.textContent = error instanceof Error ? error.message : 'Failed to submit lead';
-        }
-      });
-    </script>
   </body>
 </html>`
     },
