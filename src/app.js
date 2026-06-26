@@ -54,7 +54,7 @@ export function createApp() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Domain', 'X-Request-Id', 'Idempotency-Key', 'Accept']
   };
   app.use(cors(corsOptions));
-  app.options('*', cors(corsOptions));
+  app.options(/.*/, cors(corsOptions));
 
   // Request parsing
   app.use(express.json({ limit: '1mb' }));
