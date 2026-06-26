@@ -26,7 +26,7 @@ const LeadSchema = new Schema(
     // Optional stable external id for idempotency.
     leadExternalId: {
       type: String,
-      default: null,
+      default: undefined,
       index: true
     },
 
@@ -96,7 +96,7 @@ LeadSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 // 3) Optional sourceDomain filtering.
 LeadSchema.index({ tenantId: 1, sourceDomain: 1, createdAt: -1 });
 
-// 4) Idempotency lookup (if leadExternalId is used).
+// 4) Optional idempotency lookup when leadExternalId is provided explicitly.
 LeadSchema.index({ tenantId: 1, leadExternalId: 1 }, { unique: true, sparse: true });
 
 // 5) If promotedFields includes common searchable keys (configured later),

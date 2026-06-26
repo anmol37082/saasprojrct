@@ -88,43 +88,6 @@ function sanitizePayload(dynamicData) {
   return normalize(dynamicData);
 }
 
-function computeDuplicateKey({ tenantId, sourceDomain, dynamicData, promotedFields }) {
-  // Duplicate strategy (foundation):
-  // - Prefer promotedFields.phone/email/name when available
-  // - Otherwise hash the full sanitized payload with tenantId+sourceDomain
-
-  const preferred = {
-    phone: promotedFields.phone || null,
-    email: promotedFields.email || null,
-    name: promotedFields.name || null,
-    bookingDate: promotedFields.bookingDate || null,
-    project: promotedFields.project || null
-  };
-
-  const hasPreferred = Object.values(preferred).some((v) => v !== null && v !== '');
-
-  const base = hasPreferred
-    ? { tenantId, sourceDomain, preferred }
-    : { tenantId, sourceDomain, payload: dynamicData };
-
-  return sha256(safeJsonStringify(base));
-}
-
-async function detectDuplicateLead({ tenantId, duplicateKey, timeWindowMs = 1000 * 60 * 60 * 24 * 7 }) {
-  const since = new Date(Date.now() - timeWindowMs);
-
-  // Use leadExternalId-like unique key? We don’t have a dedicated field.
-  // Foundation approach: store duplicateKey in leadExternalId if you want.
-  // For now, we search on leadExternalId if present.
-  const existing = await Lead.findOne({
-    tenantId,
-    leadExternalId: duplicateKey,
-    createdAt: { $gte: since }
-  }).lean();
-
-  return !!existing;
-}
-
 async function writeAudit({ tenantId, actor, action, resource, resourceId, metadata, severity = 'info' }) {
   await AuditLog.create({
     tenantId: tenantId || null,
@@ -148,27 +111,9 @@ export function extractPromotedFields(dynamicData) {
 export async function createLead({ tenantId, sourceDomain, leadPayload, requestContext, promotedFields }) {
   const sanitized = sanitizePayloadForStorage(leadPayload);
 
-  const duplicateKey = computeDuplicateKey({
-    tenantId,
-    sourceDomain,
-    dynamicData: sanitized,
-    promotedFields
-  });
-
-  const isDuplicate = await detectDuplicateLead({
-    tenantId,
-    duplicateKey
-  });
-
-  if (isDuplicate) {
-    return { accepted: false, duplicate: true, duplicateKey };
-  }
-
-  // leadExternalId used as idempotency/dedup anchor.
   const lead = await Lead.create({
     tenantId,
     clientId: requestContext?.clientId || null,
-    leadExternalId: duplicateKey,
     status: 'new',
     sourceDomain: sourceDomain || '',
     dynamicData: sanitized,
@@ -182,12 +127,7 @@ export async function createLead({ tenantId, sourceDomain, leadPayload, requestC
     }
   });
 
-  return { accepted: true, leadId: lead._id.toString(), duplicateKey };
-}
-
-export async function detectDuplicateLeadByKey({ tenantId, duplicateKey }) {
-  const existing = await Lead.findOne({ tenantId, leadExternalId: duplicateKey }).lean();
-  return !!existing;
+  return { accepted: true, leadId: lead._id.toString() };
 }
 
 export async function logLeadAccepted({ tenantId, actor, leadId, sourceDomain, metadata }) {
@@ -224,7 +164,6 @@ export async function sanitizePayloadAndPromote({ tenantId, sourceDomain, payloa
 export async function createLeadWithAuditing({ tenantId, sourceDomain, leadPayload, requestContext }) {
   const promotedFields = extractPromotedFields(leadPayload);
 
-  // Duplicate detection happens inside createLead.
   const result = await createLead({
     tenantId,
     sourceDomain,
@@ -232,21 +171,6 @@ export async function createLeadWithAuditing({ tenantId, sourceDomain, leadPaylo
     requestContext,
     promotedFields
   });
-
-  if (!result.accepted) {
-    await logLeadRejected({
-      tenantId,
-      actor: null,
-      reason: result.duplicate ? 'Duplicate Lead' : 'Rejected',
-      metadata: {
-        duplicateKey: result.duplicateKey,
-        sourceDomain,
-        requestId: requestContext?.requestId || null
-      }
-    });
-
-    return { success: false, errorCode: 'DUPLICATE_LEAD', duplicate: true, requestId: requestContext?.requestId || null };
-  }
 
   await logLeadAccepted({
     tenantId,
